@@ -1,0 +1,4 @@
+*.exe
+*.txt
+*.zip
+process_file.cpp
