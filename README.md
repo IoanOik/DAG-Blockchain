@@ -35,7 +35,7 @@ g++ main.cpp vertex.cpp networking.cpp peer.cpp -o main.exe -lcryptopp
 ./main.exe <file.txt> <peers quantity> <termination round>
 ```
 
-### System requirments
+### System requirements
 * You need to have installed the CryptoPP, an open-source C++ class library of cryptographic schemes.     
 You can find it [here](https://github.com/weidai11/cryptopp).
 * The implementation is doing quite heavy thread usage. If your CPU hardware is limited, it would go smoother if you keep the **peers quantity** argument into a reasonably low number [10-40], depending on your system. 
