@@ -1,5 +1,5 @@
 # DAG Blockchain
-This project is focused on creating and implementing a Blockchain protocol based on the Directed Acyclic Graph stucture. Idealy the result would be to achieve better scalabilty and transaction per minute ratio than a typical blockchain, by constructing and verifing multiple transaction blocks concurrently.
+This project is focused on creating and implementing a Blockchain protocol based on the Directed Acyclic Graph structure. Idealy the result would be to achieve better scalabilty and transaction per minute ratio than a typical blockchain, by constructing and verifing multiple transaction blocks concurrently.
 
 **_This is still an ongoing project_**
 
