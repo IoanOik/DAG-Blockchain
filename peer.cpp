@@ -14,14 +14,14 @@ Peer::Peer(int domain, int type, int protocol, int port, int listen_q, int crowd
 
     std::ofstream file;
     std::string filename = std::to_string(this->server.getport());
-    std::string records_filename = std::to_string(this->id) + "_records.csv";
+    std::string records_filename = "records/" + std::to_string(this->id) + "_records.csv";
     file.open(filename, std::ios::trunc);
     file << this->id << "\n";
     file.close();
     file.open(records_filename);
-    file << "TIMESTAMP,CURRENT ROUND,VERTICES ON ROUND,TOTAL VERTICES,TOTAL ABSENT VERTICES,TIMES I NEEDED "
-            "HELP,CURRENTLY ASKING FOR HELP,ANSWERED REQUESTS,ADDITIONAL VERTICES MESSAGES,BROADCAST MESSAGES,REQUEST "
-            "MESSAGES,TOTAL MESSAGES,KNOWN FAILED VALIDATORS\n";
+    file << "TIMESTAMP,CURRENT ROUND,TOTAL VERTICES,TOTAL ABSENT VERTICES,TOTAL MESSAGES,TIMES I NEEDED "
+            "HELP,VERTICES ON ROUND,CURRENTLY ASKING FOR HELP,ANSWERED REQUESTS,ADDITIONAL VERTICES MESSAGES,BROADCAST MESSAGES,REQUEST "
+            "MESSAGES,KNOWN FAILED VALIDATORS\n";
     file.close();
     this->server_thread =
         std::thread(&Server::start, &this->server, crowd - 1, std::ref(this->buffer), std::ref(this->requests),
@@ -97,7 +97,7 @@ void Peer::buffer_scan_move_round()
     // std::ofstream file;
     std::string filename = std::to_string(this->id);
     std::string filename_2 = filename + "_client";
-    time_t start;
+    time_t start, last_record;
     double time_in_round;
     int stop = this->last_round;
 
@@ -113,6 +113,11 @@ void Peer::buffer_scan_move_round()
     // testfile.open(pid_name, std::ios::app);
     // testfile << "Started: " << getpid() << "\n";
     // testfile.close();
+    std::mt19937 random_num_gen(this->rd());
+    std::uniform_int_distribution<int> distribution(1, 100);
+
+    std::time(&last_record);
+    last_record = last_record - 30;
 
     while (true)
     {
@@ -160,7 +165,7 @@ void Peer::buffer_scan_move_round()
             else
             {
                 time_in_round = std::difftime(std::time(NULL), start);
-                if (time_in_round > (double)MAX_DELAY * 3)
+                if (time_in_round > (double)MAX_DELAY * 4)
                 {
                     if (this->round == this->last_round)
                     {
@@ -208,8 +213,7 @@ void Peer::buffer_scan_move_round()
                 if (v_round == 1 || mutual_history(v_round, (*it).get_refs(), set, (*it).get_pid()))
                 {
                     /* I can add this vertex to the DAG*/
-
-                    if (!set.empty())
+                    if (!set.empty() && distribution(random_num_gen) <= 60)
                     {
                         missing_vertices++;
                         v_peerID = (*it).get_pid();
@@ -253,7 +257,11 @@ void Peer::buffer_scan_move_round()
         // }
         // file.close();
 
-        write_record(&requests_answered, &missing_vertices, need_help, help_counter);
+        if (std::time(NULL) - last_record >= 12)
+        {
+            write_record(&requests_answered, &missing_vertices, need_help, help_counter);
+            std::time(&last_record);
+        }
         this->u_lock.unlock();
     }
     // file.open(filename_2, std::ios::app);
@@ -564,7 +572,8 @@ void Peer::write_record(int *requests_answered, int *missing_vertices, bool help
     int total_vertices = 0;
     int request_multicasts;
     int vertex_broadcasts;
-    std::string filename = std::to_string(this->id) + "_records.csv";
+    int total_messages;
+    std::string filename = "records/" + std::to_string(this->id) + "_records.csv";
     std::chrono::time_point point = std::chrono::system_clock::now();
     std::chrono::milliseconds mills = std::chrono::duration_cast<std::chrono::milliseconds>(point.time_since_epoch());
     std::time_t date = std::chrono::system_clock::to_time_t(point);
@@ -573,7 +582,7 @@ void Peer::write_record(int *requests_answered, int *missing_vertices, bool help
     ss << std::put_time(std::localtime(&date), "%d-%m-%Y %H:%M:%S:") << std::setfill('0') << std::setw(3)
        << mills.count() % 1000;
 
-    for (int i = 0; i < round; i++)
+    for (int i = 0; i < this->round; i++)
     {
         total_vertices += dag_image[i].size();
         if (dag_image[i].size() < this->crowd)
@@ -585,13 +594,20 @@ void Peer::write_record(int *requests_answered, int *missing_vertices, bool help
 
     vertex_broadcasts = this->round * (crowd - 1);
     request_multicasts = this->requests_asked * (2 * this->byzantines + 1);
+    total_messages = vertex_broadcasts + request_multicasts + *missing_vertices + *requests_answered;
+
+    // file.open(filename, std::ios::app);
+    // file << ss.str() << "," << this->round << "," << this->dag_image[round - 1].size() << "," << total_vertices << ","
+    //      << total_absent_vertices << "," << times_i_need_help << "," << std::boolalpha << help << ","
+    //      << *requests_answered << "," << *missing_vertices << "," << vertex_broadcasts << "," << request_multicasts
+    //      << "," << vertex_broadcasts + request_multicasts + *missing_vertices + *requests_answered << ","
+    //      << black_list.size() << "\n";
+    // file.close();
 
     file.open(filename, std::ios::app);
-    file << ss.str() << "," << this->round << "," << this->dag_image[round - 1].size() << "," << total_vertices << ","
-         << total_absent_vertices << "," << times_i_need_help << "," << std::boolalpha << help << ","
-         << *requests_answered << "," << *missing_vertices << "," << vertex_broadcasts << "," << request_multicasts
-         << "," << vertex_broadcasts + request_multicasts + *missing_vertices + *requests_answered << ","
-         << black_list.size() << "\n";
+    file << ss.str() << "," << this->round << "," << total_vertices << "," << total_absent_vertices << "," << total_messages << ","
+         << times_i_need_help << "," << this->dag_image[round - 1].size() << "," << std::boolalpha << help << ","
+         << *requests_answered << "," << *missing_vertices << "," << vertex_broadcasts << "," << request_multicasts << "," << black_list.size() << "\n";
     file.close();
 }
 

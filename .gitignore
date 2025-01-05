@@ -1,4 +1,6 @@
 *.exe
 *.txt
+*.csv
 *.zip
 process_file.cpp
+*.py

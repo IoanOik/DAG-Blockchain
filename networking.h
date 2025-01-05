@@ -21,7 +21,7 @@
 #include <vector>
 #include <random>
 #define MAX_STREAM_SIZE 65536
-#define MAX_DELAY 10
+#define MAX_DELAY 1
 #define REQ_MSG 0
 #define REG_MSG 1
 #define FIN_MSG 2

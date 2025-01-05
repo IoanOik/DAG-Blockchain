@@ -475,23 +475,27 @@ int c_socket(int domain, int type, int protocol)
 
 void c_sendn(int sockfd, char *buf, size_t len, int flags, std::random_device &device)
 {
-    int propability, seconds;
+    int propability, duration;
     const char *ptr = buf;
     size_t bytes_sent;
     size_t bytes_left = len;
-    uintptr_t address = (uintptr_t)buf;
-    unsigned int seed = time(nullptr);
-    std::random_device rd;
+    // uintptr_t address = (uintptr_t)buf;
+    // unsigned int seed = time(nullptr);
+    // std::random_device rd;
+    std::mt19937 gen(device());
+    std::uniform_int_distribution<int> dis_one(1, 100);
+    std::uniform_int_distribution<int> dis_two(0, MAX_DELAY * 1000);
 
-    propability = device() % 101;
-    if (propability <= 8)
+    propability = dis_one(gen);
+    if (propability <= 4)
     {
         free(buf);
         printf("----------message destroyed----------   %d\n", propability);
         return;
     }
-    seconds = device() % (MAX_DELAY + 1);
-    sleep(seconds);
+    duration = dis_two(gen);
+    std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+    // sleep(seconds);
 
     while (bytes_left > 0)
     {
@@ -587,14 +591,12 @@ int examine_msg(int socket, char *buffer, int len, uint32_t *bytes)
         std::memset(buffer, 0, len);
         return FIN_MSG;
     }
-
-    int a = 0;
-
-    if (count < 0)
+    else if (count < 0)
     {
         std::cerr << "Error receiving a message: " << strerror(errno) << std::endl;
         exit(EXIT_FAILURE);
     }
+
     if (buffer[0] == PREFIX)
     {
         std::memset(buffer, 0, len);

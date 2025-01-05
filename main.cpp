@@ -63,8 +63,8 @@ int main(int argc, char const *argv[])
             /* child process */
             setpgid(getpid(), getppid());
 
-            if (k <= 6)
-                fail = true;
+            // if (k <= 6)
+            //     fail = true;
 
             Peer p(AF_INET, SOCK_STREAM, IPPROTO_TCP, 4999 + k, BACKLOG, num_peers, termination_round, fail);
             close(fd[0]);
